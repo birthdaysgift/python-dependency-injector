@@ -224,11 +224,19 @@ cdef class Dict(Provider):
     cpdef object _provide(self, tuple args, dict kwargs)
 
 
-cdef class Resource(Provider):
+cdef class ResourceState:
+    cdef object resource
+    cdef object shutdowner
+    cdef bint is_async
+    cdef bint async_done
+
+    cdef void from_coro(self, coro, error_callback)
+    cdef void from_async_context_manager(self, acm, error_callback)
+    cdef object from_context_manager(self, cm, error_callback)
+
+
+cdef class BaseResource(Provider):
     cdef object _provides
-    cdef bint _initialized
-    cdef object _shutdowner
-    cdef object _resource
 
     cdef tuple _args
     cdef int _args_len
@@ -237,6 +245,16 @@ cdef class Resource(Provider):
     cdef int _kwargs_len
 
     cpdef object _provide(self, tuple args, dict kwargs)
+    cdef void set_state(self, ResourceState state)
+    cdef ResourceState get_state(self)
+
+
+cdef class Resource(BaseResource):
+    cdef ResourceState _state
+
+
+cdef class ContextLocalResource(BaseResource):
+    cdef object _cvar
 
 
 cdef class Container(Provider):
