@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import builtins
 import errno
 import sys
-from asyncio import Future, ensure_future, gather, iscoroutinefunction
+from asyncio import Future, ensure_future, gather
 from configparser import ConfigParser as IniConfigParser
 from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar
@@ -142,8 +142,8 @@ try:
 
     __COROUTINE_TYPES = _COROUTINE_TYPES
 except ImportError:
-    from types import CoroutineType
     from collections.abc import Coroutine as ABCCoroutine
+    from types import CoroutineType
 
     __COROUTINE_TYPES = (CoroutineType, ABCCoroutine)
 
@@ -4968,21 +4968,10 @@ def traverse(*providers, types=None):
 
         yield visiting
 
-
-def always_return_false(*a, **kw):
-    return False
-
-
-try:
-    from inspect import isawaitable
-except ImportError:
-    isawaitable = always_return_false
-
-try:
+if sys.version_info >= (3, 11):
     from inspect import iscoroutinefunction
-except ImportError:
-    iscoroutinefunction = always_return_false
-
+else:
+    from asyncio import iscoroutinefunction
 
 def _resolve_string_import(provides):
     if provides is None:
