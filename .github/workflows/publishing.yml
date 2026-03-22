@@ -15,11 +15,11 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.13
+          python-version: 3.14
       - run: pip install tox
       - run: tox
         env:
-          TOXENV: 3.13
+          TOXENV: 3.14
 
   linters:
     name: Run linters
@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.13
+          python-version: 3.14
       - run: pip install tox
       - run: tox
         env:
@@ -45,7 +45,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.13
+          python-version: 3.14
       - run: |
           python -m pip install --upgrade build
           python -m build --sdist
@@ -116,7 +116,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.13
+          python-version: 3.14
       - run: pip install awscli
       - run: pip install -r requirements-doc.txt
       - run: pip install -e .
