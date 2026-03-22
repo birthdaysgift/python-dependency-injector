@@ -12,14 +12,14 @@ jobs:
     name: Run tests
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
-          python-version: 3.13
+          python-version: 3.14
       - run: pip install tox
       - run: tox
         env:
-          TOXENV: 3.13
+          TOXENV: 3.14
 
   linters:
     name: Run linters
@@ -28,10 +28,10 @@ jobs:
       matrix:
         toxenv: [flake8, pydocstyle, mypy, pylint]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
-          python-version: 3.13
+          python-version: 3.14
       - run: pip install tox
       - run: tox
         env:
@@ -42,14 +42,14 @@ jobs:
     needs: [tests, linters]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
-          python-version: 3.13
+          python-version: 3.14
       - run: |
           python -m pip install --upgrade build
           python -m build --sdist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cibw-sdist
           path: ./dist/*
@@ -63,15 +63,16 @@ jobs:
         os: [ubuntu-24.04, ubuntu-24.04-arm, windows-2022, macos-14]
     env:
       CIBW_ENABLE: pypy
+      CIBW_SKIP: "cp3??t-*"
       CIBW_ENVIRONMENT: >-
         PIP_CONFIG_SETTINGS="build_ext=-j4"
         DEPENDENCY_INJECTOR_LIMITED_API="1"
         CFLAGS="-g0"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.0.0
-      - uses: actions/upload-artifact@v4
+        uses: pypa/cibuildwheel@v3.4.0
+      - uses: actions/upload-artifact@v7
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
@@ -84,7 +85,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: cibw-*
           path: dist
@@ -101,7 +102,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: cibw-*
           path: dist
@@ -113,10 +114,10 @@ jobs:
     needs: [publish]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
-          python-version: 3.13
+          python-version: 3.14
       - run: pip install awscli
       - run: pip install -r requirements-doc.txt
       - run: pip install -e .
