@@ -63,6 +63,7 @@ jobs:
         os: [ubuntu-24.04, ubuntu-24.04-arm, windows-2022, macos-14]
     env:
       CIBW_ENABLE: pypy
+      CIBW_SKIP: "cp3??t-*"
       CIBW_ENVIRONMENT: >-
         PIP_CONFIG_SETTINGS="build_ext=-j4"
         DEPENDENCY_INJECTOR_LIMITED_API="1"
