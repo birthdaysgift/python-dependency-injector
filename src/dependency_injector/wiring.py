@@ -959,8 +959,8 @@ class ProvidedInstance(Modifier):
         self.segments.append((self.TYPE_ITEM, item))
         return self
 
-    def call(self) -> Self:
-        self.segments.append((self.TYPE_CALL, None))
+    def call(self, *args, **kwargs) -> Self:
+        self.segments.append((self.TYPE_CALL, (args, kwargs)))
         return self
 
     def modify(
@@ -975,7 +975,7 @@ class ProvidedInstance(Modifier):
             elif type_ == ProvidedInstance.TYPE_ITEM:
                 provider = provider[value]
             elif type_ == ProvidedInstance.TYPE_CALL:
-                provider = provider.call()
+                provider = provider.call(*value[0], **value[1])
             else:
                 assert_never(type_)
         return provider
