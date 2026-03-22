@@ -7,6 +7,19 @@ that were made in every particular version.
 From version 0.7.6 *Dependency Injector* framework strictly
 follows `Semantic versioning`_
 
+4.49.0
+------
+
+- Python 3.14 support
+- Fix Pydantic v2 deprecation warning triggering on settings class import
+- Add missing warn_unresolved parameter to WiringConfiguration in ``containers.pyi``. Thanks to `@jonathandannenberg <https://github.com/jonathandannenberg>`_ for `#951 <https://github.com/ets-labs/python-dependency-injector/pull/951>`_.
+- Add keep_cache argument to Container.wire typings. Thanks to `@romantolkachyov <https://github.com/romantolkachyov>`_ for `#952 <https://github.com/ets-labs/python-dependency-injector/pull/952>`_.
+- Use assert_type for type-stub checks. Thanks to `@leonarduschen <https://github.com/leonarduschen>`_ for `#934 <https://github.com/ets-labs/python-dependency-injector/issues/934>`_, `#953 <https://github.com/ets-labs/python-dependency-injector/issues/953>`_.
+- Add provided()<func>.call ``*args``, ``**kwargs`` arguments. Thanks to `@pavalso <https://github.com/pavalso>`_ for `#946 <https://github.com/ets-labs/python-dependency-injector/pull/946>`_.
+- Add context local resource. Thanks to `@elina-israyelyan <https://github.com/elina-israyelyan>`_ for `#931 <https://github.com/ets-labs/python-dependency-injector/pull/931>`_.
+- Update CI/CD to ``actions/checkout@v6``, ``actions/setup-python@v6``, ``actions/download-artifact@v8``, ``actions/upload-artifact@v7`` and ``pypa/cibuildwheel@v3.4.0``.
+- Add dependabot config for GitHub Actions
+
 4.48.3
 ------
 
