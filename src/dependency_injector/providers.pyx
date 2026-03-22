@@ -2,25 +2,27 @@
 
 from __future__ import absolute_import
 
-import asyncio
 import builtins
-import copy
-import dataclasses
 import errno
-import functools
-import importlib
-import inspect
-import json
-import os
-import re
 import sys
-import threading
-import warnings
-from asyncio import ensure_future
+from asyncio import Future, ensure_future, gather, iscoroutinefunction
 from configparser import ConfigParser as IniConfigParser
 from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar
-from inspect import isasyncgenfunction, isgeneratorfunction
+from copy import deepcopy as copy_deepcopy
+from functools import partial
+from importlib import import_module
+from inspect import (
+    getmodule,
+    isasyncgenfunction,
+    isgeneratorfunction,
+    stack as inspect_stack,
+)
+from json import loads as json_loads
+from os import getenv
+from re import compile as re_compile
+from threading import RLock, local as threading_local
+from warnings import warn
 
 try:
     from inspect import _is_coroutine_mark as _is_coroutine_marker
@@ -68,14 +70,13 @@ else:
 
 from .errors import (
     Error,
-    NoSuchProviderError,
     NonCopyableArgumentError,
+    NoSuchProviderError,
 )
 
 cimport cython
 
-
-config_env_marker_pattern = re.compile(
+config_env_marker_pattern = re_compile(
     r"\${(?P<name>[^}^{:]+)(?P<separator>:?)(?P<default>.*?)}",
 )
 
@@ -87,7 +88,7 @@ cdef str _resolve_config_env_markers(config_content: str, envs_required: bool):
         env_name = match.group("name")
         has_default = match.group("separator") == ":"
 
-        value = os.getenv(env_name)
+        value = getenv(env_name)
         if value is None:
             if not has_default and envs_required:
                 raise ValueError(f"Missing required environment variable \"{env_name}\"")
@@ -134,7 +135,18 @@ cdef int ASYNC_MODE_ENABLED = 1
 cdef int ASYNC_MODE_DISABLED = 2
 
 cdef set __iscoroutine_typecache = set()
-cdef tuple __COROUTINE_TYPES = asyncio.coroutines._COROUTINE_TYPES
+cdef tuple __COROUTINE_TYPES
+
+try:
+    from asyncio.coroutines import _COROUTINE_TYPES
+
+    __COROUTINE_TYPES = _COROUTINE_TYPES
+except ImportError:
+    from types import CoroutineType
+    from collections.abc import Coroutine as ABCCoroutine
+
+    __COROUTINE_TYPES = (CoroutineType, ABCCoroutine)
+
 
 cdef dict pydantic_settings_to_dict(settings, dict kwargs):
     if not has_pydantic_settings:
@@ -212,7 +224,7 @@ cdef class Provider:
 
     __IS_PROVIDER__ = True
 
-    overriding_lock = threading.RLock()
+    overriding_lock = RLock()
     """Overriding reentrant lock.
 
     :type: :py:class:`threading.RLock`
@@ -384,7 +396,7 @@ cdef class Provider:
 
         :rtype: :py:class:`Delegate`
         """
-        warnings.warn(
+        warn(
             "Method \".delegate()\" is deprecated since version 4.0.0. "
             "Use \".provider\" attribute instead.",
             category=DeprecationWarning,
@@ -831,9 +843,9 @@ cdef class Dependency(Provider):
             return result
         elif self._async_mode == ASYNC_MODE_ENABLED:
             if __is_future_or_coroutine(result):
-                future_result = asyncio.Future()
-                result = asyncio.ensure_future(result)
-                result.add_done_callback(functools.partial(self._async_provide, future_result))
+                future_result = Future()
+                result = ensure_future(result)
+                result.add_done_callback(partial(self._async_provide, future_result))
                 return future_result
             else:
                 self._check_instance_type(result)
@@ -842,9 +854,9 @@ cdef class Dependency(Provider):
             if __is_future_or_coroutine(result):
                 self.enable_async_mode()
 
-                future_result = asyncio.Future()
-                result = asyncio.ensure_future(result)
-                result.add_done_callback(functools.partial(self._async_provide, future_result))
+                future_result = Future()
+                result = ensure_future(result)
+                result.add_done_callback(partial(self._async_provide, future_result))
                 return future_result
             else:
                 self.disable_async_mode()
@@ -1449,7 +1461,7 @@ cdef class Coroutine(Callable):
     def set_provides(self, provides):
         """Set provider provides."""
         provides = _resolve_string_import(provides)
-        if provides and not asyncio.iscoroutinefunction(provides):
+        if provides and not iscoroutinefunction(provides):
             raise Error(f"Provider {_class_qualname(self)} expected to get coroutine function, "
                         f"got {provides} instead")
         return super().set_provides(provides)
@@ -1782,7 +1794,7 @@ cdef class ConfigurationOption(Provider):
                 config_content,
                 envs_required if envs_required is not UNDEFINED else self._is_strict_mode_enabled(),
             )
-        config = json.loads(config_content)
+        config = json_loads(config_content)
 
         current_config = self.__call__()
         if not current_config:
@@ -1855,7 +1867,7 @@ cdef class ConfigurationOption(Provider):
 
         :rtype: None
         """
-        value = os.environ.get(name, default)
+        value = getenv(name, default)
 
         if value is UNDEFINED:
             if required is not False \
@@ -2337,7 +2349,7 @@ cdef class Configuration(Object):
                 config_content,
                 envs_required if envs_required is not UNDEFINED else self._is_strict_mode_enabled(),
             )
-        config = json.loads(config_content)
+        config = json_loads(config_content)
 
         current_config = self.__call__()
         if not current_config:
@@ -2404,7 +2416,7 @@ cdef class Configuration(Object):
 
         :rtype: None
         """
-        value = os.environ.get(name, default)
+        value = getenv(name, default)
 
         if value is UNDEFINED:
             if required is not False \
@@ -3017,7 +3029,7 @@ cdef class Singleton(BaseSingleton):
         :rtype: None
         """
         if __is_future_or_coroutine(self._storage):
-            asyncio.ensure_future(self._storage).cancel()
+            ensure_future(self._storage).cancel()
         self._storage = None
         return SingletonResetContext(self)
 
@@ -3027,9 +3039,9 @@ cdef class Singleton(BaseSingleton):
             instance = __factory_call(self._instantiator, args, kwargs)
 
             if __is_future_or_coroutine(instance):
-                future_result = asyncio.Future()
-                instance = asyncio.ensure_future(instance)
-                instance.add_done_callback(functools.partial(self._async_init_instance, future_result))
+                future_result = Future()
+                instance = ensure_future(instance)
+                instance.add_done_callback(partial(self._async_init_instance, future_result))
                 self._storage = future_result
                 return future_result
 
@@ -3063,7 +3075,7 @@ cdef class DelegatedSingleton(Singleton):
 cdef class ThreadSafeSingleton(BaseSingleton):
     """Thread-safe singleton provider."""
 
-    storage_lock = threading.RLock()
+    storage_lock = RLock()
     """Storage reentrant lock.
 
     :type: :py:class:`threading.RLock`
@@ -3086,7 +3098,7 @@ cdef class ThreadSafeSingleton(BaseSingleton):
         """
         with self._storage_lock:
             if __is_future_or_coroutine(self._storage):
-                asyncio.ensure_future(self._storage).cancel()
+                ensure_future(self._storage).cancel()
             self._storage = None
         return SingletonResetContext(self)
 
@@ -3099,9 +3111,9 @@ cdef class ThreadSafeSingleton(BaseSingleton):
                 if self._storage is None:
                     result = __factory_call(self._instantiator, args, kwargs)
                     if __is_future_or_coroutine(result):
-                        future_result = asyncio.Future()
-                        result = asyncio.ensure_future(result)
-                        result.add_done_callback(functools.partial(self._async_init_instance, future_result))
+                        future_result = Future()
+                        result = ensure_future(result)
+                        result.add_done_callback(partial(self._async_init_instance, future_result))
                         result = future_result
                     self._storage = result
                 instance = self._storage
@@ -3155,7 +3167,7 @@ cdef class ThreadLocalSingleton(BaseSingleton):
         :param provides: Provided type.
         :type provides: type
         """
-        self._storage = threading.local()
+        self._storage = threading_local()
         super(ThreadLocalSingleton, self).__init__(provides, *args, **kwargs)
 
     def reset(self):
@@ -3169,7 +3181,7 @@ cdef class ThreadLocalSingleton(BaseSingleton):
             return SingletonResetContext(self)
 
         if __is_future_or_coroutine(instance):
-            asyncio.ensure_future(instance).cancel()
+            ensure_future(instance).cancel()
 
         del self._storage.instance
 
@@ -3185,9 +3197,9 @@ cdef class ThreadLocalSingleton(BaseSingleton):
             instance = __factory_call(self._instantiator, args, kwargs)
 
             if __is_future_or_coroutine(instance):
-                future_result = asyncio.Future()
-                instance = asyncio.ensure_future(instance)
-                instance.add_done_callback(functools.partial(self._async_init_instance, future_result))
+                future_result = Future()
+                instance = ensure_future(instance)
+                instance.add_done_callback(partial(self._async_init_instance, future_result))
                 self._storage.instance = future_result
                 return future_result
 
@@ -3247,7 +3259,7 @@ cdef class ContextLocalSingleton(BaseSingleton):
             return SingletonResetContext(self)
 
         if __is_future_or_coroutine(instance):
-            asyncio.ensure_future(instance).cancel()
+            ensure_future(instance).cancel()
 
         self._storage.set(self._none)
 
@@ -3263,9 +3275,9 @@ cdef class ContextLocalSingleton(BaseSingleton):
             instance = __factory_call(self._instantiator, args, kwargs)
 
             if __is_future_or_coroutine(instance):
-                future_result = asyncio.Future()
-                instance = asyncio.ensure_future(instance)
-                instance.add_done_callback(functools.partial(self._async_init_instance, future_result))
+                future_result = Future()
+                instance = ensure_future(instance)
+                instance.add_done_callback(partial(self._async_init_instance, future_result))
                 self._storage.set(future_result)
                 return future_result
 
@@ -4330,9 +4342,9 @@ cdef class AttributeGetter(Provider):
     cpdef object _provide(self, tuple args, dict kwargs):
         provided = self.provides(*args, **kwargs)
         if __is_future_or_coroutine(provided):
-            future_result = asyncio.Future()
-            provided = asyncio.ensure_future(provided)
-            provided.add_done_callback(functools.partial(self._async_provide, future_result))
+            future_result = Future()
+            provided = ensure_future(provided)
+            provided.add_done_callback(partial(self._async_provide, future_result))
             return future_result
         return getattr(provided, self.name)
 
@@ -4412,9 +4424,9 @@ cdef class ItemGetter(Provider):
     cpdef object _provide(self, tuple args, dict kwargs):
         provided = self.provides(*args, **kwargs)
         if __is_future_or_coroutine(provided):
-            future_result = asyncio.Future()
-            provided = asyncio.ensure_future(provided)
-            provided.add_done_callback(functools.partial(self._async_provide, future_result))
+            future_result = Future()
+            provided = ensure_future(provided)
+            provided.add_done_callback(partial(self._async_provide, future_result))
             return future_result
         return provided[self.name]
 
@@ -4542,9 +4554,9 @@ cdef class MethodCaller(Provider):
     cpdef object _provide(self, tuple args, dict kwargs):
         call = self.provides()
         if __is_future_or_coroutine(call):
-            future_result = asyncio.Future()
-            call = asyncio.ensure_future(call)
-            call.add_done_callback(functools.partial(self._async_provide, future_result, args, kwargs))
+            future_result = Future()
+            call = ensure_future(call)
+            call.add_done_callback(partial(self._async_provide, future_result, args, kwargs))
             return future_result
         return __call(
             call,
@@ -4857,7 +4869,7 @@ cpdef object deepcopy(object instance, dict memo=None):
 
     __add_sys_streams(memo)
 
-    return copy.deepcopy(instance, memo)
+    return copy_deepcopy(instance, memo)
 
 
 cpdef tuple deepcopy_args(
@@ -4874,7 +4886,7 @@ cpdef tuple deepcopy_args(
 
     for i, arg in enumerate(args):
         try:
-            out.append(copy.deepcopy(arg, memo))
+            out.append(copy_deepcopy(arg, memo))
         except Exception as e:
             raise NonCopyableArgumentError(provider, index=i) from e
 
@@ -4895,7 +4907,7 @@ cpdef dict[str, object] deepcopy_kwargs(
 
     for name, arg in kwargs.items():
         try:
-            out[name] = copy.deepcopy(arg, memo)
+            out[name] = copy_deepcopy(arg, memo)
         except Exception as e:
             raise NonCopyableArgumentError(provider, keyword=name) from e
 
@@ -4957,20 +4969,19 @@ def traverse(*providers, types=None):
         yield visiting
 
 
-def isawaitable(obj):
-    """Check if object is a coroutine function."""
-    try:
-        return inspect.isawaitable(obj)
-    except AttributeError:
-        return False
+def always_return_false(*a, **kw):
+    return False
 
 
-def iscoroutinefunction(obj):
-    """Check if object is a coroutine function."""
-    try:
-        return inspect.iscoroutinefunction(obj)
-    except AttributeError:
-        return False
+try:
+    from inspect import isawaitable
+except ImportError:
+    isawaitable = always_return_false
+
+try:
+    from inspect import iscoroutinefunction
+except ImportError:
+    iscoroutinefunction = always_return_false
 
 
 def _resolve_string_import(provides):
@@ -4996,14 +5007,14 @@ def _resolve_string_import(provides):
     if module_name.startswith(".") and package_name is None:
         raise ImportError("Attempted relative import with no known parent package")
 
-    module = importlib.import_module(module_name, package=package_name)
+    module = import_module(module_name, package=package_name)
     return getattr(module, member_name)
 
 
 def _resolve_calling_module():
-    stack = inspect.stack()
+    stack = inspect_stack()
     pre_last_frame = stack[0]
-    return inspect.getmodule(pre_last_frame[0])
+    return getmodule(pre_last_frame[0])
 
 
 def _resolve_calling_package_name():
