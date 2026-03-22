@@ -12,8 +12,8 @@ jobs:
     name: Run tests
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.14
       - run: pip install tox
@@ -28,8 +28,8 @@ jobs:
       matrix:
         toxenv: [flake8, pydocstyle, mypy, pylint]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.14
       - run: pip install tox
@@ -42,14 +42,14 @@ jobs:
     needs: [tests, linters]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.14
       - run: |
           python -m pip install --upgrade build
           python -m build --sdist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cibw-sdist
           path: ./dist/*
@@ -69,10 +69,10 @@ jobs:
         DEPENDENCY_INJECTOR_LIMITED_API="1"
         CFLAGS="-g0"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.0.0
-      - uses: actions/upload-artifact@v4
+        uses: pypa/cibuildwheel@v3.4.0
+      - uses: actions/upload-artifact@v7
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
@@ -85,7 +85,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: cibw-*
           path: dist
@@ -102,7 +102,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: cibw-*
           path: dist
@@ -114,8 +114,8 @@ jobs:
     needs: [publish]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.14
       - run: pip install awscli
