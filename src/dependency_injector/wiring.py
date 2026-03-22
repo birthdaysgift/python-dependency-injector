@@ -7,7 +7,6 @@ from functools import wraps
 from importlib import import_module, invalidate_caches as invalidate_import_caches
 from inspect import (
     Parameter,
-    get_annotations,
     getmembers,
     isasyncgenfunction,
     isbuiltin,
@@ -1213,20 +1212,16 @@ def _get_sync_patched(fn: F, patched: PatchedCallable) -> F:
     return cast(F, _patched)
 
 
-if sys.version_info >= (3, 10):
-
-    def _get_annotations(obj: Any) -> Dict[str, Any]:
-        return get_annotations(obj)
-
-else:
-
-    def _get_annotations(obj: Any) -> Dict[str, Any]:
+try:
+    from inspect import get_annotations
+except ImportError:
+    def get_annotations(obj: Any) -> Dict[str, Any]:
         return getattr(obj, "__annotations__", {})
 
 
 def _get_members_and_annotated(obj: Any) -> Iterable[Tuple[str, Any]]:
     members = getmembers(obj)
-    annotations = _get_annotations(obj)
+    annotations = get_annotations(obj)
     for annotation_name, annotation in annotations.items():
         if get_origin(annotation) is Annotated:
             args = get_args(annotation)
