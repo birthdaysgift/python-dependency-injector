@@ -1,0 +1,22 @@
+name: faststream-example
+
+services:
+
+  redis:
+    container_name: "${COMPOSE_PROJECT_NAME}-redis"
+    image: redis
+
+  consumer:
+    container_name: "${COMPOSE_PROJECT_NAME}-consumer"
+    build:
+      dockerfile: Dockerfile.consumer
+    depends_on:
+      - redis
+
+  producer:
+    container_name: "${COMPOSE_PROJECT_NAME}-producer"
+    build:
+      dockerfile: Dockerfile.producer
+    depends_on:
+      - consumer
+

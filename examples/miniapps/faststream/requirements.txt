@@ -1,0 +1,4 @@
+dependency_injector
+faststream
+pydantic
+redis
