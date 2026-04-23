@@ -3,11 +3,9 @@ name: faststream-example
 services:
 
   redis:
-    container_name: "${COMPOSE_PROJECT_NAME}-redis"
     image: redis
 
   consumer:
-    container_name: "${COMPOSE_PROJECT_NAME}-consumer"
     build:
       dockerfile: Dockerfile
     environment:
@@ -17,7 +15,6 @@ services:
     entrypoint: python3 -m src.consumer
 
   producer:
-    container_name: "${COMPOSE_PROJECT_NAME}-producer"
     build:
       dockerfile: Dockerfile
     environment:
