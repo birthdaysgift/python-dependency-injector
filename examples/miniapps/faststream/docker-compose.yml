@@ -9,14 +9,16 @@ services:
   consumer:
     container_name: "${COMPOSE_PROJECT_NAME}-consumer"
     build:
-      dockerfile: Dockerfile.consumer
+      dockerfile: Dockerfile
     depends_on:
       - redis
+    entrypoint: python3 -m src.consumer
 
   producer:
     container_name: "${COMPOSE_PROJECT_NAME}-producer"
     build:
-      dockerfile: Dockerfile.producer
+      dockerfile: Dockerfile
     depends_on:
       - consumer
+    entrypoint: python3 -m src.producer
 

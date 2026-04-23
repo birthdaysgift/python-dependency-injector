@@ -23,5 +23,6 @@ Explore the examples to see the ``Dependency Injector`` in action.
     fastapi-redis
     fastapi-sqlalchemy
     fastdepends
+    faststream
 
 .. disqus::

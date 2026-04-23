@@ -1,5 +1,5 @@
 FastStream + Dependency Injector Example
-=====================================
+========================================
 
 This is a `FastStream <https://dummy.faststream.airt.ai/0.5/faststream/>`_ +
 `Dependency Injector <https://python-dependency-injector.ets-labs.org/>`_ example application.
@@ -16,11 +16,6 @@ Everything can be run via docker compose.
 A convenient ``run.sh`` script runs consumer, producer and redis services, prints logs from consumer
 and shuts down once producer exits.
 
-Ensure that ``run.sh`` has execution permission:
-
-.. code-block:: bash
-
-    sudo chmod +x ./run.sh
 
 Run the sciprt:
 
@@ -38,3 +33,9 @@ The output should be something like:
     faststream-example-consumer  | Message #4 from John: 'into faststream handler'
     faststream-example-consumer  | Message #5 from John: 'via awesome dependency_injector library.'
 
+
+Once you've done working with this example you can clean up docker images and containers it produced:
+
+.. code-block:: bash
+
+    docker compose down --rmi local

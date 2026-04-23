@@ -8,4 +8,3 @@ RUN pip install -r requirements.txt
 COPY ./src ./src
 
 ENV PYTHONUNBUFFERED=1
-CMD ["python3", "-m", "src.consumer"]

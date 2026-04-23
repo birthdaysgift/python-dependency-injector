@@ -8,7 +8,7 @@ FastStream example
    :description: This example demonstrates a usage of FastStream with Dependency Injector.
 
 
-This example shows how to use ``Dependency Injector`` with `FastStream <https://dummy.faststream.airt.ai/0.5/faststream/>`_.
+This example shows how to use ``Dependency Injector`` with `FastStream <https://github.com/ag2ai/faststream>`_.
 
 The source code is available on the `Github <https://github.com/ets-labs/python-dependency-injector/tree/master/examples/miniapps/faststream>`_.
 
