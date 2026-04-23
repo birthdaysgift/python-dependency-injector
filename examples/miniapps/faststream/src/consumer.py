@@ -4,7 +4,7 @@ from typing import Annotated
 from dependency_injector import containers, providers
 from dependency_injector.wiring import Provide, inject
 from faststream import Depends, FastStream
-from faststream.redis import RedisBroker
+from faststream.redis import RedisBroker, RedisRouter
 from pydantic import BaseModel
 
 
@@ -20,8 +20,10 @@ class Counter:
 class Container(containers.DeclarativeContainer):
     counter = providers.Singleton(Counter)
 
+    config = providers.Configuration()
 
-broker = RedisBroker("redis://redis", logger=None)
+    broker = providers.Singleton(RedisBroker, config.redis_url, logger=None)
+    app = providers.Factory(FastStream, broker, logger=None)
 
 
 class Message(BaseModel):
@@ -29,7 +31,10 @@ class Message(BaseModel):
     text: str
 
 
-@broker.subscriber("messages")
+router = RedisRouter()
+
+
+@router.subscriber("messages")
 @inject
 async def handle_user_message(
     message: Message,
@@ -49,7 +54,13 @@ async def main() -> None:
     container = Container()
     container.wire(modules=[__name__])
 
-    await FastStream(broker, logger=None).run()
+    container.config.redis_url.from_env("REDIS_URL")
+
+    broker = container.broker()
+    broker.include_router(router)
+
+    app = container.app()
+    await app.run()
 
 
 if __name__ == "__main__":
