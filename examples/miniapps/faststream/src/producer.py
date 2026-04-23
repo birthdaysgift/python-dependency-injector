@@ -1,11 +1,25 @@
 import json
 import time
 
-import redis
+from dependency_injector import containers, providers
+from dependency_injector.wiring import Provide, inject
+from redis import Redis
+
+
+class Container(containers.DeclarativeContainer):
+    config = providers.Configuration()
+
+    redis = providers.Singleton(Redis, config.redis_host, config.redis_port.as_int())
 
 
 def main():
-    client = redis.Redis(host="redis", port=6379)
+    container = Container()
+    container.wire(modules=[__name__])
+
+    container.config.redis_host.from_env("REDIS_HOST")
+    container.config.redis_port.from_env("REDIS_PORT")
+
+    redis = container.redis()
 
     for text in (
         "As you can see",
@@ -17,7 +31,7 @@ def main():
         time.sleep(2)
 
         message = {"user": "John", "text": text}
-        client.publish("messages", json.dumps(message))
+        redis.publish("messages", json.dumps(message))
 
 
 if __name__ == "__main__":

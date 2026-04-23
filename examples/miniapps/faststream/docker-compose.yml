@@ -20,6 +20,9 @@ services:
     container_name: "${COMPOSE_PROJECT_NAME}-producer"
     build:
       dockerfile: Dockerfile
+    environment:
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
     depends_on:
       - consumer
     entrypoint: python3 -m src.producer
