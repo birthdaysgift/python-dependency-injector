@@ -1,7 +1,7 @@
 FastStream + Dependency Injector Example
 ========================================
 
-This is a `FastStream <https://dummy.faststream.airt.ai/0.5/faststream/>`_ +
+This is a `FastStream <https://github.com/ag2ai/faststream>`_ +
 `Dependency Injector <https://python-dependency-injector.ets-labs.org/>`_ example application.
 
 The example application is a simple consumer that counts messages sent to redis channel by producer.
