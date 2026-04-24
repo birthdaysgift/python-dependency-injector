@@ -6,8 +6,7 @@ services:
     image: redis
 
   consumer:
-    build:
-      dockerfile: Dockerfile
+    build: .
     environment:
       REDIS_URL: "redis://redis"
     depends_on:
@@ -15,8 +14,7 @@ services:
     entrypoint: python3 consumer.py
 
   producer:
-    build:
-      dockerfile: Dockerfile
+    build: .
     environment:
       REDIS_HOST: "redis"
       REDIS_PORT: "6379"
