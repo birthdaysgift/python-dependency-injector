@@ -1,7 +1,7 @@
 .. _faststream-example:
 
 FastStream example
-=============
+==================
 
 .. meta::
    :keywords: Python,Dependency Injection,FastStream,Example
