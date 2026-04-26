@@ -2,7 +2,6 @@ import json
 import time
 
 from dependency_injector import containers, providers
-from dependency_injector.wiring import Provide, inject
 from redis import Redis
 
 
@@ -36,4 +35,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
