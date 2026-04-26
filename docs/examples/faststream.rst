@@ -13,7 +13,7 @@ This example shows how to use ``Dependency Injector`` with `FastStream <https://
 The source code is available on the `Github <https://github.com/ets-labs/python-dependency-injector/tree/master/examples/miniapps/faststream>`_.
 
 Despite ``FastStream`` uses ``FastDepends`` library for dependency injection, the integration between
-``Dependency injector`` and ``FastStream`` has a small difference from already existing :ref:`fastdepends` example.
+``Dependency injector`` and ``FastStream`` has a small difference from already existing :ref:`fastdepends-example`.
 
 Since ``FastStream`` also leverages function signatures to determine input data types you have to use ``Depends()`` function
 with ``cast=False`` argument to make ``FastStream`` ignore your injected dependency argument in the function signature.
@@ -23,12 +23,12 @@ message schema (``User``) and injected dependency (``Counter``) and use them bot
 
 Listing of ``consumer.py``:
 
-.. literalinclude:: ../../examples/miniapps/faststream/src/consumer.py
+.. literalinclude:: ../../examples/miniapps/faststream/consumer.py
    :language: python
 
 Listing of ``producer.py``:
 
-.. literalinclude:: ../../examples/miniapps/faststream/src/producer.py
+.. literalinclude:: ../../examples/miniapps/faststream/producer.py
    :language: python
 
 Sources
